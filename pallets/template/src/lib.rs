@@ -154,18 +154,16 @@ pub mod pallet {
 			if let (Some(something), Some(dest)) = (Something::<T>::get(), LastWho::<T>::get()) {
 				if something == 1 {
 					info!(target: LOG_TARGET, "========= DENTRO DO START = 1 ==========");
-
+					info!(target: LOG_TARGET, "conta destino: {:?}", dest);
 					
 					// 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 					let alice = AccountId32::new([
-						212, 53, 254, 170, 29, 104, 38, 97,
-						27, 51, 175, 86, 106, 38, 155, 66,
-						238, 21, 63, 54, 9, 10, 11, 12,
-						13, 14, 15, 16, 17, 18, 19, 20
+						212, 53, 147, 199, 21, 253, 211, 28,
+						97, 20, 26, 189, 4, 169, 159, 214,
+						130, 44, 133, 88, 133, 76, 205, 227,
+						154, 86, 132, 231, 165, 109, 162, 125,
 					]);
-
-					info!(target: LOG_TARGET, "conta da alice: {:?}", alice);
-					info!(target: LOG_TARGET, "conta destino: {:?}", dest);
+					info!(target: LOG_TARGET, "conta da alice : AccountId32 : {:?}", alice);
 					let ss58_out = alice.to_ss58check();
 					info!(target: LOG_TARGET, "conta da alice to_ss58check: {:?}", ss58_out);
 
@@ -173,15 +171,13 @@ pub mod pallet {
 
 					let ss58 = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5";
 					let account32 = AccountId32::from_ss58check(ss58).expect("SS58 válido");
+					info!(target: LOG_TARGET, "conta da alice : AccountId32 : {:?}", account32);
+					// Converter AccountId32 → AccountId do runtime
 					let account_grana: T::AccountId = T::AccountId::decode(&mut &account32.encode()[..])
 					.expect("conversion from AccountId32 failed");
-					info!(target: LOG_TARGET, "conta da alice: {:?}", account_grana);
+					info!(target: LOG_TARGET, "conta da alice : AccountId : {:?}", account_grana);
 
-					// Converter AccountId32 → AccountId do runtime
-					let alice_account: T::AccountId = T::AccountId::decode(&mut &alice.encode()[..])
-						.expect("conversion from AccountId32 failed");
 
-					info!(target: LOG_TARGET, "conta da alice: {:?}", alice_account);
 
 					// Consultar saldo
 					let free_balance = T::Currency::free_balance(&account_grana);
