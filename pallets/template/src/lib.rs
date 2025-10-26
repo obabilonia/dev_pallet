@@ -111,6 +111,10 @@ pub mod pallet {
 
 	#[pallet::storage]
 	pub type LastWho<T: Config> = StorageValue<_, T::AccountId>;
+
+	#[pallet::storage]
+	pub type LastNow<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+	//pub type LastNow<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
 	/// Events that functions in this pallet can emit.
 	///
 	/// Events are a simple means of indicating to the outside world (such as dApps, chain explorers
@@ -151,9 +155,17 @@ pub mod pallet {
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
 			info!(target: LOG_TARGET, "DENTRO DO ON_INICIALIZE");
-			if let (Some(something), Some(dest)) = (Something::<T>::get(), LastWho::<T>::get()) {
+			if let (Some(something), Some(dest), now) = (Something::<T>::get(), LastWho::<T>::get(), LastNow::<T>::get()) {
 				if something == 1 {
 					info!(target: LOG_TARGET, "========= DENTRO DO START = 1 ==========");
+					info!(target: LOG_TARGET, "n: {:?}", n);
+					info!(target: LOG_TARGET, "now: {:?}", now);
+					info!(target: LOG_TARGET, "delta: {:?}", n-now);
+					if n-now == 10u32.into() {
+						info!(target: LOG_TARGET, "+++++++++++++ FEITOOOOO +++++++++++");
+					}
+
+
 					info!(target: LOG_TARGET, "conta destino: {:?}", dest);
 					
 					// 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
@@ -238,6 +250,7 @@ pub mod pallet {
 			// Update storage.
 			Something::<T>::put(something);
 			LastWho::<T>::put(&who);
+			LastNow::<T>::put(&now);
 
 			// Emit an event.
 			Self::deposit_event(Event::SomethingStored { something, who, now});
