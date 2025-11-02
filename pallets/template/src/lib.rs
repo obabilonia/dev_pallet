@@ -113,8 +113,8 @@ pub mod pallet {
 	pub type LastWho<T: Config> = StorageValue<_, T::AccountId>;
 
 	#[pallet::storage]
-	pub type LastNow<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
-	//pub type LastNow<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
+	pub type LastAsignatura<T: Config> = StorageValue<_, BlockNumberFor<T>, ValueQuery>;
+	//pub type LastAsignatura<T: Config> = StorageValue<_, T::BlockNumber, ValueQuery>;
 	/// Events that functions in this pallet can emit.
 	///
 	/// Events are a simple means of indicating to the outside world (such as dApps, chain explorers
@@ -129,7 +129,7 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// A user has successfully set a new value.
-		SomethingStored { something: u32, who: T::AccountId, now: BlockNumberFor<T> },
+		SomethingStored { something: u32, who: T::AccountId, t_asignatura: BlockNumberFor<T> },
 		TransferMade { from: T::AccountId, to: T::AccountId, amount: BalanceOf<T> },
 	}
 
@@ -153,21 +153,15 @@ pub mod pallet {
 
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
-		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
+		fn on_initialize(now: BlockNumberFor<T>) -> Weight {
 			info!(target: LOG_TARGET, "DENTRO DO ON_INICIALIZE");
-			if let (Some(something), Some(dest), now) = (Something::<T>::get(), LastWho::<T>::get(), LastNow::<T>::get()) {
+			if let (Some(something), Some(dest), t_asignatura) = (Something::<T>::get(), LastWho::<T>::get(), LastAsignatura::<T>::get()) {
 				if something == 1 {
 					info!(target: LOG_TARGET, "========= DENTRO DO START = 1 ==========");
-					info!(target: LOG_TARGET, "n: {:?}", n);
 					info!(target: LOG_TARGET, "now: {:?}", now);
-					info!(target: LOG_TARGET, "delta: {:?}", n-now);
-					if n-now == 10u32.into() {
-						info!(target: LOG_TARGET, "+++++++++++++ FEITOOOOO +++++++++++");
-					}
-
-
+					info!(target: LOG_TARGET, "t_asignatura: {:?}", t_asignatura);
+					info!(target: LOG_TARGET, "delta: {:?}", now-t_asignatura);
 					info!(target: LOG_TARGET, "conta destino: {:?}", dest);
-					
 					// 5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY
 					let alice = AccountId32::new([
 						212, 53, 147, 199, 21, 253, 211, 28,
@@ -178,9 +172,6 @@ pub mod pallet {
 					info!(target: LOG_TARGET, "conta da alice : AccountId32 : {:?}", alice);
 					let ss58_out = alice.to_ss58check();
 					info!(target: LOG_TARGET, "conta da alice to_ss58check: {:?}", ss58_out);
-
-
-
 					let ss58 = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5";
 					let account32 = AccountId32::from_ss58check(ss58).expect("SS58 válido");
 					info!(target: LOG_TARGET, "conta da alice : AccountId32 : {:?}", account32);
@@ -188,31 +179,55 @@ pub mod pallet {
 					let account_grana: T::AccountId = T::AccountId::decode(&mut &account32.encode()[..])
 					.expect("conversion from AccountId32 failed");
 					info!(target: LOG_TARGET, "conta da alice : AccountId : {:?}", account_grana);
-
-
-
 					// Consultar saldo
 					let free_balance = T::Currency::free_balance(&account_grana);
-
-					// Logar
 					log::info!("💰 Saldo da Alice: {:?}", free_balance);
+
+					if now-t_asignatura == 50u32.into() {
+						info!(target: LOG_TARGET, "+++++++++++++ FEITOOOOO +++++++++++");
+
+						// Update storage.
+						Something::<T>::put(0u32);
+						LastAsignatura::<T>::put(&now);
+
+						let amount: BalanceOf<T> = (free_balance-1000u32.into()).into();
+						// 💸 Tenta transferir de Alice → Bob
+						if let Err(err) = <T as Config>::Currency::transfer(&account_grana,&dest,amount,AllowDeath) {
+							log::warn!(target: "runtime", "❌ Falha ao transferir: {:?}", err);
+						} else {
+							log::info!(target: "runtime", "✅ Transferência de 1000 tokens de Alice para Bob feita!");
+						}
+						Self::deposit_event(Event::TransferMade { from: account_grana, to: dest, amount });
+
+					}
+
+
+
+
+
+
+
+
+
+
+
 
 					let amount: BalanceOf<T> = 1u32.into();
 
 
 					// 💸 Tenta transferir de Alice → Bob
-					if let Err(err) = <T as Config>::Currency::transfer(
-						&account_grana,
-						&dest,
-						amount,
-						AllowDeath,
-					) {
-						log::warn!(target: "runtime", "❌ Falha ao transferir: {:?}", err);
-					} else {
-						log::info!(target: "runtime", "✅ Transferência de 1000 tokens de Alice para Bob feita!");
-					}
-
-					Self::deposit_event(Event::TransferMade { from: account_grana, to: dest, amount });
+//					if let Err(err) = <T as Config>::Currency::transfer(
+//						&account_grana,
+//						&dest,
+//						amount,
+//						AllowDeath,
+//					) {
+//						log::warn!(target: "runtime", "❌ Falha ao transferir: {:?}", err);
+//					} else {
+//						log::info!(target: "runtime", "✅ Transferência de 1000 tokens de Alice para Bob feita!");
+//					}
+//
+//					Self::deposit_event(Event::TransferMade { from: account_grana, to: dest, amount });
 					
 				}
 			}
@@ -243,17 +258,42 @@ pub mod pallet {
 		pub fn do_something(origin: OriginFor<T>, something: u32) -> DispatchResult {
 			// Check that the extrinsic was signed and get the signer.
 			let who = ensure_signed(origin)?;
-            let now = frame_system::Pallet::<T>::block_number();
+            let t_asignatura = frame_system::Pallet::<T>::block_number();
 			info!(target: LOG_TARGET, "CHAMANDO STRINSIC");
 			
 
 			// Update storage.
 			Something::<T>::put(something);
 			LastWho::<T>::put(&who);
-			LastNow::<T>::put(&now);
+			LastAsignatura::<T>::put(&t_asignatura);
+
+
+
+
+
+
+			let ss58 = "15oF4uVJwmo4TdGW7VfQxNLavjCXviqxT9S1MgbjMNHr6Sp5";
+			let account32 = AccountId32::from_ss58check(ss58).expect("SS58 válido");
+			info!(target: LOG_TARGET, "do_something - conta da alice : AccountId32 : {:?}", account32);
+			// Converter AccountId32 → AccountId do runtime
+			let alicee: T::AccountId = T::AccountId::decode(&mut &account32.encode()[..])
+			.expect("conversion from AccountId32 failed");
+			let amount: BalanceOf<T> = 50u32.into();
+			// 💸 Tenta transferir de Alice → Bob
+			if let Err(err) = <T as Config>::Currency::transfer(
+				&who,
+				&alicee,
+				amount,
+				AllowDeath,
+			) {
+				log::warn!(target: "runtime", "❌ Falha ao transferir: {:?}", err);
+			} else {
+				log::info!(target: "runtime", "✅ Transferência de 50 tokens para Alice");
+			}
+
 
 			// Emit an event.
-			Self::deposit_event(Event::SomethingStored { something, who, now});
+			Self::deposit_event(Event::SomethingStored { something, who, t_asignatura});
 
 			// Return a successful `DispatchResult`
 			Ok(())
